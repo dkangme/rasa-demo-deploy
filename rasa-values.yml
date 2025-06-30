@@ -1,0 +1,98 @@
+# Rasa Helm Chart Configuration
+# Based on official Rasa documentation: https://legacy-docs-oss.rasa.com/docs/rasa/deploy/deploy-rasa
+
+# Application Settings
+applicationSettings:
+  # Use our custom image with pre-trained model
+  trainInitialModel: false
+  
+  # Disable initial model download since we have our own model
+  initialModel: null
+  
+  # Specify the exact model to load
+  modelPath: "/app/models/demo1.tar.gz"
+
+# Custom Rasa Server Image
+image:
+  repository: us-central1-docker.pkg.dev/pruebas-tecnologia/rasa-repo/rasa-nlu
+  tag: latest
+  pullPolicy: Always
+
+# Sobrescribe los argumentos de arranque para quitar autenticación
+defaultArgs: []
+args:
+  - rasa
+  - run
+  - --enable-api
+  - --port
+  - "5005"
+  - --cors
+  - "*"
+
+# Service Configuration
+# NOTA: El tráfico entre el LoadBalancer/Ingress y el pod de Rasa es SIEMPRE HTTP (no HTTPS)
+service:
+  type: LoadBalancer  # For external access
+  port: 5005
+
+# Resource Limits
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "200m"
+  limits:
+    memory: "1Gi"
+    cpu: "400m"
+
+# Action Server Configuration
+actionServer:
+  enabled: true
+  image:
+    repository: us-central1-docker.pkg.dev/pruebas-tecnologia/rasa-repo/rasa-actions
+    tag: latest
+    pullPolicy: Always
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
+  
+  service:
+    port: 5055
+
+# Ingress Configuration (optional)
+# NOTA: El backend del Ingress hacia el Service/pod es HTTP, aunque el usuario acceda por HTTPS
+ingress:
+  enabled: true
+  className: "gce"
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "rasa-ip"
+  hosts:
+    - host: rasa.example.com  # Change this to your domain
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Environment Variables - Simplified authentication
+env:
+  - name: RASA_TOKEN
+    value: "rasaToken"  # Simple token for testing
+  - name: RASA_MODEL_PATH
+    value: "/app/models/20250628-212120-spicy-wheel.tar.gz"
+
+# Secrets - Simplified
+secrets:
+  rasa-token: "rasaToken"  # Simple token for testing
+
+# PostgreSQL Configuration (optional, uses in-memory by default)
+postgresql:
+  enabled: false  # Use in-memory tracker store for simplicity
+
+# Additional Configuration
+extraVolumeMounts: []
+extraVolumes: [] 

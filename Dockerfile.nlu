@@ -1,0 +1,33 @@
+FROM python:3.8.10-slim
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    pkg-config \
+    libhdf5-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Actualizar pip
+RUN pip install --upgrade pip
+
+# Instalar Rasa 3.6.21
+RUN pip install rasa==3.6.21
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de configuración y datos
+COPY config.yml /app/config.yml
+COPY domain.yml /app/domain.yml
+COPY data/ /app/data/
+COPY credentials.yml /app/credentials.yml
+
+# Copiar el modelo entrenado localmente
+COPY models/demo1.tar.gz /app/models/
+
+# Exponer el puerto por defecto
+EXPOSE 5005
+
+# Comando por defecto
+CMD ["rasa", "run", "--enable-api", "--cors", "*", "--debug"] 
